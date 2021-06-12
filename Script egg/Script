@@ -1,0 +1,33 @@
+#!/bin/bash
+# Spigot Installation Script
+#
+# Server Files: /mnt/server
+
+apt update 
+apt install -y curl wget git openssl bash bc apt-transport-https gnupg software-properties-common
+wget -qO - https://adoptopenjdk.jfrog.io/adoptopenjdk/api/gpg/key/public | apt-key add -
+add-apt-repository --yes https://adoptopenjdk.jfrog.io/adoptopenjdk/deb/
+apt update
+mkdir -p /usr/share/man/man1
+if [ "${DL_VERSION}" == "latest" ] || (( $(echo "${DL_VERSION} >= 1.17" | bc -l) )); then
+    apt install -y adoptopenjdk-16-hotspot
+else
+    apt install -y adoptopenjdk-8-hotspot
+fi
+
+## Only download if a path is provided, otherwise continue.
+if [ ! -z "${DL_PATH}" ]; then
+    cd /mnt/server
+
+    MODIFIED_DOWNLOAD=`eval echo $(echo ${DL_PATH} | sed -e 's/{{/${/g' -e 's/}}/}/g')`
+    curl -sSL -o ${SERVER_JARFILE} ${MODIFIED_DOWNLOAD}
+else
+    mkdir -p /srv/
+    cd /srv/
+    
+    wget https://hub.spigotmc.org/jenkins/job/BuildTools/lastSuccessfulBuild/artifact/target/BuildTools.jar
+    
+    java -jar BuildTools.jar --rev ${DL_VERSION}
+
+    mv spigot-*.jar /mnt/server/${SERVER_JARFILE}
+fi
